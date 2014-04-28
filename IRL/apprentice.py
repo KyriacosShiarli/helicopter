@@ -1,7 +1,5 @@
 import sys
 import math
-sys.path.append('/Users/Kikos/Desktop/helicopter')
-sys.path.append('/Users/Kikos/Desktop/helicopter/site-packages')
 from eonn import eonnIRL
 from eonn.genome import Genome
 from eonn.organism import Pool
@@ -63,7 +61,7 @@ class Apprentice():
       # Set evolutionary parameters
       eonnIRL.keep = 15 ; eonnIRL.mutate_prob = 0.4 ; eonnIRL.mutate_frac = 0.1;eonnIRL.mutate_std = 0.8;eonnIRL.mutate_repl = 0.15
       # Evolve population
-      pool = eonnIRL.optimize(pool, self.percieved_eval,2) # These are imported functions from EONNIRL
+      pool = eonnIRL.optimize(pool, self.percieved_eval,20) # These are imported functions from EONNIRL
       champion = max(pool)
       # Print results
       print '\nerror:', math.exp(1 / self.percieved_eval(champion.policy))
