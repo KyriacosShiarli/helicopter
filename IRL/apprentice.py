@@ -21,7 +21,6 @@ class Apprentice():
         except:
          print 'Usage: experiment [0-9]'
          exit()
-        self.learnedGenome = 1 # Current genome attached to the apprentice assign genome when it first appears
         self.apprenticeEnvironment = env # the environment at which the apprentice will operate is deternined at instantiation
         if sum(numpy.absolute(theta))>0: # make sure initial reward vector is >0
             self.theta  = theta
@@ -37,9 +36,9 @@ class Apprentice():
     def error_from_observation(self,observation):
         """ Return the error of the current state. """
         if not self.heli.terminal:
-            state,q,a = extract_sa(observation) # Function from evaluator
-            state = state+q
-            feat = self.features_from_state(state[:-1])
+            #state,q,a = extract_sa(observation) # Function from evaluator
+            #state = state+q
+            feat = self.features_from_state(observation[:-1])
             error = numpy.dot(self.theta,feat)
         else:
             error = sum([v**2 for v in self.heli.LIMITS[:9]] + [1.0 - self.heli.LIMITS[9]**2])
@@ -61,7 +60,7 @@ class Apprentice():
       # Set evolutionary parameters
       eonnIRL.keep = 15 ; eonnIRL.mutate_prob = 0.4 ; eonnIRL.mutate_frac = 0.1;eonnIRL.mutate_std = 0.8;eonnIRL.mutate_repl = 0.15
       # Evolve population
-      pool = eonnIRL.optimize(pool, self.percieved_eval,20) # These are imported functions from EONNIRL
+      pool = eonnIRL.optimize(pool, self.percieved_eval,400) # These are imported functions from EONNIRL
       champion = max(pool)
       # Print results
       print '\nerror:', math.exp(1 / self.percieved_eval(champion.policy))
@@ -88,8 +87,7 @@ class Apprentice():
             featureSum = self.policy_observation(policy)
             featureExp = feature_exp_step(featureExp,featureSum,i+1)
         return featureExp
-
-
+    
 def real_eval(heli,policy): #policy evaluation returns policy 1/log(error) i.e max is best
     """ Helicopter alternative evaluation function for IRL. """
     observation, sum_error = heli.reset()

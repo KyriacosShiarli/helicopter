@@ -40,51 +40,66 @@ def print_dyn(what): # dynamic printing function
   sys.stdout.write(what)
   sys.stdout.flush()
   
-def print_progress(i):
-  print_dyn( "--------------------------------------------------------------\n")
-  print_dyn( "ITERATION: %s \n" % i)
-  print_dyn( "errors for expert:\n")
-  error_print(pol.policy)
-  print "errors for apprentice:"
-  error_print(trainedPolicy)
-  print_dyn(str(['apprentice FE %s'% mu_app +'and expert FE %s \n' % mu_expert]))
-  print_dyn("delta theta %s \n" %delta_theta)
-  print_dyn( "old theta %s\n" %old)
-  print_dyn( "new theta %s\n" %student.theta)
-  print_dyn( "--------------------------------------------------------------\n")
+def theta_descent():
+  def print_progress(i):
+    print_dyn( "--------------------------------------------------------------\n")
+    print_dyn( "ITERATION: %s \n" % i)
+    print_dyn( "errors for expert:\n")
+    error_print(pol.policy)
+    print "errors for apprentice:"
+    error_print(trainedPolicy)
+    print_dyn(str(['apprentice FE %s'% mu_app +'and expert FE %s \n' % mu_expert]))
+    print_dyn("delta theta %s \n" %delta_theta)
+    print_dyn( "old theta %s\n" %old)
+    print_dyn( "new theta %s\n" %new)
+    print_dyn( "--------------------------------------------------------------\n")
+  fac=1
+  #get feature expectation from expert in that environment
+  mu_expert = normalise_vector(student.observe_multiple(1,pol.policy))
+  # learn best policy given that reward function
+  for i in range(40):
+    trainedPolicy = student.learn_genomeIRL()
+    mu_app = normalise_vector(student.policy_observation(trainedPolicy))
+    delta_theta = np.subtract(mu_app,mu_expert)
+    old = student.theta
+    new =normalise_vector(np.add(student.theta,delta_theta))
+    threshold(new)
+    print_progress(i)
+    student.theta=new
 
-fac=1
-#start with an initial theta to give a first policy
-thetaInitial = [10,0,0.5,1] 
-# initialise agent with that
-student = Apprentice(sys.argv[1],thetaInitial)
-#get feature expectation from expert in that environment
-mu_expert = student.observe_multiple(5,pol.policy)
-# learn best policy given that reward function
-for i in range(10):
-  trainedPolicy = student.learn_genomeIRL()
-  mu_app = student.policy_observation(trainedPolicy) # all feature sums normalised
+def projection():
+
+  mu_app = []
+  mu_mod = []
+  # initialise agent with that
   
-  delta_theta = normalise_vector(np.subtract(mu_app,mu_expert)) #other way round because we talk of errors
+  #get feature expectation from expert in that environment
+  mu_expert = normalise_vector(student.observe_multiple(5,pol.policy))
+  # learn best policy given that reward function
+  for i in range(20):
+    trainedPolicy = student.learn_genomeIRL()
+    mu_app.append(normalise_vector(student.policy_observation(trainedPolicy)))
+    if i ==0:
+      mu_mod.append(mu_app[0])
+      old = student.theta
+      student.theta = abs(np.subtract(mu_mod[i],mu_expert))
+    else:  
+      modify_mu(mu_app,mu_mod,mu_expert)
+      old = student.theta
+      student.theta = normalise_vector(abs(np.subtract(mu_mod[i],mu_expert)))
+    #threshold(student.theta)
+    print_dyn( "--------------------------------------------------------------\n")
+    print_dyn( "ITERATION: %s \n" % i)
+    print_dyn( "errors for expert:\n")
+    error_print(pol.policy)
+    print "errors for apprentice:"
+    error_print(trainedPolicy)
+    print_dyn(str(['apprentice FE %s'% mu_app[i] +'and expert FE %s \n' % mu_expert]))
+    print_dyn( "old theta %s\n" %old)
+    print_dyn( "new theta %s\n" %student.theta)
+    print_dyn( "--------------------------------------------------------------\n")
 
-  old = student.theta
-  student.theta = np.add(student.theta,delta_theta)
-  threshold(student.theta)
-  print_progress(i)
-# get the feature expectation using that trained optimal policy
-#mu_app.append(normalise_vector(student.policy_observation(trainedPolicy)))
-'''
-mu_mod.append(mu_app[0])
-#calculate your first theta
-student.theta = abs(mu_expert - mu_app[0])
-print 'elloooo',student.theta
-tee = np.linalg.norm(student.theta)
-
-for i in range(20):
-  trainedPolicy=student.learn_genomeIRL()
-  mu_app.append(normalise_vector(student.policy_observation(trainedPolicy)))
-  modify_mu(mu_app,mu_mod,mu_expert)
-  student.theta = abs(mu_expert-mu_app[0])
-  print 'elloooo',student.theta
-  tee = np.linalg.norm(student.theta)
-'''
+thetaInitial = [2,0.5,2,0.5]
+student = Apprentice(sys.argv[1],thetaInitial)
+error = student.percieved_eval(pol.policy)
+theta_descent()
